@@ -139,7 +139,7 @@ const AnimatedSection = ({ id, children, className = "", threshold = 0.2 }) => {
 };
 
 // Enhanced Button Components
-const GradientButton = ({ onClick, children, variant = 'primary', size = 'md', className = '', disabled = false }) => {
+const GradientButton = ({ onClick, children, variant = 'primary', size = 'md', className = '', disabled = false, type = 'button', ...props }) => {
   const baseClasses = "font-bold rounded-2xl transition-all duration-300 flex items-center justify-center gap-3 relative overflow-hidden group transform hover:scale-105 hover:-translate-y-1 active:scale-95";
   
   const variants = {
@@ -158,9 +158,11 @@ const GradientButton = ({ onClick, children, variant = 'primary', size = 'md', c
 
   return (
     <button
+      type={type}
       onClick={onClick}
       disabled={disabled}
       className={`${baseClasses} ${variants[variant]} ${sizes[size]} ${className} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+      {...props}
     >
       <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 transform -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
       <span className="relative z-10">{children}</span>
@@ -239,6 +241,7 @@ export default function EnhancedResume() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [formError, setFormError] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Custom hooks
@@ -395,9 +398,18 @@ export default function EnhancedResume() {
   const handleContactSubmit = useCallback(async (e) => {
     e.preventDefault();
     if (!contactForm.name || !contactForm.email || !contactForm.message) {
+      setFormError('אנא מלא את כל השדות המסומנים *');
       return;
     }
-    
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(contactForm.email)) {
+      setFormError('אנא הזן כתובת אימייל תקינה');
+      return;
+    }
+
+    setFormError('');
+
     setIsSubmitting(true);
     
     // Simulate API call
@@ -406,7 +418,8 @@ export default function EnhancedResume() {
     setSubmitSuccess(true);
     setContactForm({ name: '', email: '', phone: '', message: '', company: '' });
     setIsSubmitting(false);
-    
+    setFormError('');
+
     setTimeout(() => {
       setShowContactForm(false);
       setSubmitSuccess(false);
@@ -1310,7 +1323,10 @@ export default function EnhancedResume() {
                           type={field.type}
                           required={field.label.includes('*')}
                           value={contactForm[field.key]}
-                          onChange={(e) => setContactForm({...contactForm, [field.key]: e.target.value})}
+                          onChange={(e) => {
+                            setContactForm({ ...contactForm, [field.key]: e.target.value });
+                            if (formError) setFormError('');
+                          }}
                           className="w-full px-4 py-4 text-white bg-slate-700/50 border-2 border-slate-600/50 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-slate-700 transition-all duration-300 placeholder-slate-400 hover:border-slate-500/70 focus:scale-102"
                           placeholder={field.placeholder}
                           dir={field.dir || "rtl"}
@@ -1332,14 +1348,21 @@ export default function EnhancedResume() {
                         required
                         rows={4}
                         value={contactForm.message}
-                        onChange={(e) => setContactForm({...contactForm, message: e.target.value})}
+                        onChange={(e) => {
+                          setContactForm({ ...contactForm, message: e.target.value });
+                          if (formError) setFormError('');
+                        }}
                         className="w-full px-4 py-4 text-white bg-slate-700/50 border-2 border-slate-600/50 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-slate-700 transition-all duration-300 placeholder-slate-400 resize-none hover:border-slate-500/70 focus:scale-102"
                         placeholder="ספר לי על הפרויקט או התפקיד שמעניין אותך..."
                       />
                     </div>
-                    
+
+                    {formError && (
+                      <p className="text-red-400 text-center mb-4">{formError}</p>
+                    )}
+
                     <GradientButton
-                      onClick={handleContactSubmit}
+                      type="submit"
                       disabled={isSubmitting || !contactForm.name || !contactForm.email || !contactForm.message}
                       variant="primary"
                       size="xl"
